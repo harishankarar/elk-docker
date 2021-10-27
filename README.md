@@ -152,30 +152,30 @@ Install filebeat to collect logs from clients:
 ~# yum install filebeat-7.15.0-x86_64.rpm
 
 ~# vim /etc/filebeat/filebeat.yml
-filebeat.inputs:
-- input_type: log
-  paths:
-    - /var/log/secure
-  fields:
-    event.dataset: <SERVERNAME.log_file_name>
-  fields_under_root: true
-  input_type: log
-  document_type: syslog
-  registry: /var/lib/filebeat/registry
-- input_type: log
-  paths:
-    - /var/log/messages
-  fields:
-    event.dataset: <SERVERNAME.log_file_name>
-  fields_under_root: true
-  document_type: syslog
-  registry: /var/lib/filebeat/registry
-output.elasticsearch:
-  hosts: ["https://<SERVER_IP>:9400"]
-  protocol: "https"
-  username: "elastic"
-  password: "admin@123"
-  ssl.verification_mode: none
+ filebeat.inputs:
+ - input_type: log
+   paths:
+     - /var/log/secure
+   fields:
+     event.dataset: <SERVERNAME.log_file_name>
+   fields_under_root: true
+   input_type: log
+   document_type: syslog
+   registry: /var/lib/filebeat/registry
+ - input_type: log
+   paths:
+     - /var/log/messages
+   fields:
+     event.dataset: <SERVERNAME.log_file_name>
+   fields_under_root: true
+   document_type: syslog
+   registry: /var/lib/filebeat/registry
+ output.elasticsearch:
+   hosts: ["https://<SERVER_IP>:9400"]
+   protocol: "https"
+   username: "elastic"
+   password: "admin@123"
+   ssl.verification_mode: none
 
 ~# systemctl start filebeat
 
