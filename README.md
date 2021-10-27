@@ -138,15 +138,14 @@ Note: To quit the interactive shell, press ctrl+d.
 
 
 
-
-<--------------------------------------- Client Config --------------------------------------->
-
 Client Config
+-------------
 -------------
 
 To send log data to elasticsearch from client:
 
 Install filebeat to collect logs from clients:
+
 ~# curl -L -O https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-7.15.0-x86_64.rpm
 
 ~# yum install filebeat-7.15.0-x86_64.rpm
