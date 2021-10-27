@@ -4,7 +4,7 @@ network.host: 0.0.0.0
 
 bootstrap.memory_lock: true
 
-xpack.license.self_generated.type: trial
+xpack.license.self_generated.type: basic
 xpack.security.enabled: true
 xpack.monitoring.collection.enabled: true
 
