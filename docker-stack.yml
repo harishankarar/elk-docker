@@ -1,0 +1,185 @@
+version: '3.2'
+
+services:
+  elasticsearch-1:
+    build:
+      context: elasticsearch/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    environment:
+      - "ES_JAVA_OPTS=-Xmx1024m -Xms1024m"
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=elasticsearch-2,elasticsearch-3
+      - cluster.initial_master_nodes=elasticsearch-1,elasticsearch-2,elasticsearch-3
+      - xpack.license.self_generated.type=trial
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=${ESCERTSDIR}/elasticsearch-1.key
+      - xpack.security.http.ssl.certificate_authorities=${ESCERTSDIR}/rootCA.pem
+      - xpack.security.http.ssl.certificate=${ESCERTSDIR}/elasticsearch-1.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.certificate_authorities=${ESCERTSDIR}/rootCA.pem
+      - xpack.security.transport.ssl.certificate=${ESCERTSDIR}/elasticsearch-1.crt
+      - xpack.security.transport.ssl.key=${ESCERTSDIR}/elasticsearch-1.key
+      - "ELASTIC_PASSWORD=admin@123"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - type: volume
+        source: elasticsearch-data-1
+        target: /usr/share/elasticsearch/data
+      - type: bind
+        source: ${HOSTCERTSDIR}/elasticsearch-1.crt
+        target: ${ESCERTSDIR}/elasticsearch-1.crt
+        read_only: true
+      - type: bind
+        source: ${HOSTCERTSDIR}/elasticsearch-1.key
+        target: ${ESCERTSDIR}/elasticsearch-1.key
+        read_only: true
+      - type: bind
+        source: ${HOSTCERTSDIR}/rootCA.pem
+        target: ${ESCERTSDIR}/rootCA.pem
+        read_only: true
+    ports:
+      - 9400:9200
+      - 9500:9300
+    networks:
+      - elastic
+    healthcheck:
+      test: curl --cacert ${ESCERTSDIR}/rootCA.pem -s https://elasticsearch-1:9200 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  elasticsearch-2:
+    build:
+      context: elasticsearch/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    environment:
+      - "ES_JAVA_OPTS=-Xmx1024m -Xms1024m"
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=elasticsearch-2,elasticsearch-3
+      - cluster.initial_master_nodes=elasticsearch-1,elasticsearch-2,elasticsearch-3
+      - xpack.license.self_generated.type=trial
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=${ESCERTSDIR}/elasticsearch-2.key
+      - xpack.security.http.ssl.certificate_authorities=${ESCERTSDIR}/rootCA.pem
+      - xpack.security.http.ssl.certificate=${ESCERTSDIR}/elasticsearch-2.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.certificate_authorities=${ESCERTSDIR}/rootCA.pem
+      - xpack.security.transport.ssl.certificate=${ESCERTSDIR}/elasticsearch-2.crt
+      - xpack.security.transport.ssl.key=${ESCERTSDIR}/elasticsearch-2.key
+      - "ELASTIC_PASSWORD=admin@123"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - type: volume
+        source: elasticsearch-data-2
+        target: /usr/share/elasticsearch/data
+      - type: bind
+        source: ${HOSTCERTSDIR}/elasticsearch-2.crt
+        target: ${ESCERTSDIR}/elasticsearch-2.crt
+        read_only: true
+      - type: bind
+        source: ${HOSTCERTSDIR}/elasticsearch-2.key
+        target: ${ESCERTSDIR}/elasticsearch-2.key
+        read_only: true
+      - type: bind
+        source: ${HOSTCERTSDIR}/rootCA.pem
+        target: ${ESCERTSDIR}/rootCA.pem
+        read_only: true
+    networks:
+      - elastic
+
+  elasticsearch-3:
+    build:
+      context: elasticsearch/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    environment:
+      - "ES_JAVA_OPTS=-Xmx1024m -Xms1024m"
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=elasticsearch-1,elasticsearch-2
+      - cluster.initial_master_nodes=elasticsearch-1,elasticsearch-2,elasticsearch-3
+      - xpack.license.self_generated.type=trial
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=${ESCERTSDIR}/elasticsearch-3.key
+      - xpack.security.http.ssl.certificate_authorities=${ESCERTSDIR}/rootCA.pem
+      - xpack.security.http.ssl.certificate=${ESCERTSDIR}/elasticsearch-3.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.certificate_authorities=${ESCERTSDIR}/rootCA.pem
+      - xpack.security.transport.ssl.certificate=${ESCERTSDIR}/elasticsearch-3.crt
+      - xpack.security.transport.ssl.key=${ESCERTSDIR}/elasticsearch-3.key
+      - "ELASTIC_PASSWORD=admin@123"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - type: volume
+        source: elasticsearch-data-3
+        target: /usr/share/elasticsearch/data
+      - type: bind
+        source: ${HOSTCERTSDIR}/elasticsearch-3.crt
+        target: ${ESCERTSDIR}/elasticsearch-3.crt
+        read_only: true
+      - type: bind
+        source: ${HOSTCERTSDIR}/elasticsearch-3.key
+        target: ${ESCERTSDIR}/elasticsearch-3.key
+        read_only: true
+      - type: bind
+        source: ${HOSTCERTSDIR}/rootCA.pem
+        target: ${ESCERTSDIR}/rootCA.pem
+        read_only: true
+    networks:
+      - elastic
+
+  kibana:
+    build:
+      context: kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    depends_on: {"elasticsearch": {"condition": "service_healthy"}}
+    ports:
+      - 6601:5601
+    environment:
+      ELASTICSEARCH_URL: https://elasticsearch-1:9200
+      ELASTICSEARCH_HOSTS: '["https://elasticsearch-1:9200","https://elasticsearch-2:9200","https://elasticsearch-3:9200"]'
+      ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES: ${KIBCERTSDIR}/rootCA.pem
+      SERVER_SSL_ENABLED: "true"
+      SERVER_SSL_KEY: ${KIBCERTSDIR}/kibana.key
+      SERVER_SSL_CERTIFICATE: ${KIBCERTSDIR}/kibana.crt   
+    volumes:
+      - type: bind
+        source: ${HOSTCERTSDIR}/kibana.crt
+        target: ${KIBCERTSDIR}/kibana.crt
+        read_only: true
+      - type: bind
+        source: ${HOSTCERTSDIR}/kibana.key
+        target: ${KIBCERTSDIR}/kibana.key
+        read_only: true
+      - type: bind
+        source: ${HOSTCERTSDIR}/rootCA.pem
+        target: ${KIBCERTSDIR}/rootCA.pem
+        read_only: true
+    networks:
+      - elastic
+
+volumes:
+  elasticsearch-data-1:
+    driver: local
+  elasticsearch-data-2:
+    driver: local
+  elasticsearch-data-3:
+    driver: local
+
+networks:
+  elastic:
+    driver: bridge

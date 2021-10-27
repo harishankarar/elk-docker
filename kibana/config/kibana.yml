@@ -1,0 +1,20 @@
+---
+server.name: kibana
+server.host: 0.0.0.0
+elasticsearch.hosts: [ "https://elasticsearch:9200" ]
+monitoring.ui.container.elasticsearch.enabled: true
+
+elasticsearch.username: <username>
+elasticsearch.password: <password>
+elasticsearch.ssl.certificateAuthorities: [ "/usr/share/kibana/config/rootCA.pem" ]
+
+server.ssl.enabled: true
+server.ssl.certificate: /usr/share/kibana/config/kibana.crt
+server.ssl.key: /usr/share/kibana/config/kibana.key
+
+xpack.encryptedSavedObjects.encryptionKey: <encryptedSavedObjects_encryptionKey>
+xpack.reporting.encryptionKey: <reporting_encryptionKey>
+xpack.security.encryptionKey: <security_encryptionKey>
+
+xpack.security.session.idleTimeout: "10m"
+xpack.security.session.lifespan: "1h"

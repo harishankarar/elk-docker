@@ -1,0 +1,9 @@
+---
+node.name: "logstash"
+http.host: "0.0.0.0"
+
+xpack.monitoring.enabled: true
+xpack.monitoring.elasticsearch.hosts: [ "https://elasticsearch:9200" ]
+xpack.monitoring.elasticsearch.username: elastic
+xpack.monitoring.elasticsearch.password: admin@123
+xpack.monitoring.elasticsearch.ssl.certificate_authority: /usr/share/logstash/config/rootCA.pem

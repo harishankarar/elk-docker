@@ -1,0 +1,110 @@
+version: '3.2'
+
+services:
+  elasticsearch:
+    build:
+      context: elasticsearch/
+      args:
+        ELK_VERSION: ${ELK_VERSION}
+    environment:
+      ES_JAVA_OPTS: "-Xmx1024m -Xms1024m"
+      discovery.type: single-node
+      ELASTIC_PASSWORD: "admin@123"
+    volumes:
+      - type: bind
+        source: "${CONFIGDIR}/elasticsearch/config/elasticsearch.yml"
+        target: "${ESCERTSDIR}/elasticsearch.yml"
+        read_only: true
+      - type: bind
+        source: "${CONFIGDIR}/elasticsearch-data"
+        target: /usr/share/elasticsearch/data
+        read_only: false
+      - type: bind
+        source: ${HOSTCERTSDIR}/elasticsearch.crt
+        target: ${ESCERTSDIR}/elasticsearch.crt
+        read_only: true
+      - type: bind
+        source: ${HOSTCERTSDIR}/elasticsearch.key
+        target: ${ESCERTSDIR}/elasticsearch.key
+        read_only: true
+      - type: bind
+        source: ${HOSTCERTSDIR}/rootCA.pem
+        target: ${ESCERTSDIR}/rootCA.pem
+        read_only: true
+    ports:
+      - 9400:9200
+      - 9500:9300
+    networks:
+      - elastic
+    healthcheck:
+      test: curl --cacert ${ESCERTSDIR}/rootCA.pem -s https://elasticsearch:9200 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 60s
+      timeout: 10s
+      retries: 5
+
+  logstash:
+    build:
+      context: logstash/
+      args:
+        ELK_VERSION: ${ELK_VERSION}
+    profiles:
+      - donotstart
+    volumes:
+      - type: bind
+        source: "${CONFIGDIR}/logstash/config/logstash.yml"
+        target: "${LOGCERTSDIR}/logstash.yml"
+        read_only: true
+      - type: bind
+        source: "${CONFIGDIR}/logstash/pipeline"
+        target: "/usr/share/logstash/pipeline"
+        read_only: true
+      - type: bind
+        source: "${HOSTCERTSDIR}/rootCA.pem"
+        target: "${LOGCERTSDIR}/rootCA.pem"
+        read_only: true
+    ports:
+      - "5044:5044"
+      - "5000:5000/tcp"
+      - "5000:5000/udp"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx1024m -Xms1024m"
+    networks:
+      - elastic
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  kibana:
+    build:
+      context: kibana/
+      args:
+        ELK_VERSION: ${ELK_VERSION}
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - 6601:5601   
+    volumes:
+      - type: bind
+        source: "${CONFIGDIR}/kibana/config/kibana.yml"
+        target: "${KIBCERTSDIR}/kibana.yml"
+        read_only: true
+      - type: bind
+        source: "${HOSTCERTSDIR}/kibana.crt"
+        target: "${KIBCERTSDIR}/kibana.crt"
+        read_only: true
+      - type: bind
+        source: "${HOSTCERTSDIR}/kibana.key"
+        target: "${KIBCERTSDIR}/kibana.key"
+        read_only: true
+      - type: bind
+        source: "${HOSTCERTSDIR}/rootCA.pem"
+        target: "${KIBCERTSDIR}/rootCA.pem"
+        read_only: true
+    networks:
+      - elastic
+
+networks:
+  elastic:
+    driver: bridge
