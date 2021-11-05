@@ -95,6 +95,17 @@ Once deployed, you can visit kibana with the below link.
 https://localhost:6601
 
 
+Errors:
+------
+~# docker-compose up -d
+Creating network "elk-docker_elastic" with driver "bridge" ERROR: Failed to Setup IP tables: Unable to enable SKIP DNAT rule:  (iptables failed: iptables --wait -t nat -I DOCKER -i br-2b5916a7b664 -j RETURN: iptables: No chain/target/match by that name.  (exit status 1))
+
+Solution:
+Something has deleted the docker iptables entries. Docker will recreate them if you restart it (systemctl restart docker). You'll want to disable anything else that manages iptables to prevent this from happening in the future.
+
+~# systemctl restart docker
+
+
 To stop elk-docker
 ------------------
 ~# docker-compose down
@@ -128,18 +139,18 @@ Troubleshooting a container
 ---------------------------
 To trouble shoot a container we might need to access the container's shell. This can be achieved by the following steps.
 
-~# docker container ps      ==> (to get the container name or id)
-
+Method 1:
+~# docker container ps              ==> (to get the container name or id)
 ~# docker exec --detach-keys="ctrl-d" -it <CONTAINER_NAME/ID> bash
 
+Method 2:
+~# cd /opt/installer/elk-docker
 ~# docker-compose exec <service_name> bash
 
 Note: To quit the interactive shell, press ctrl+d.
 
 
-
-
-<--------------------------------------- Client Config --------------------------------------->
+<--------------------------------------- Client Config Starts --------------------------------------->
 
 Client Config
 -------------
@@ -175,8 +186,47 @@ output.elasticsearch:
   protocol: "https"
   username: "elastic"
   password: "admin@123"
-  ssl.verification_mode: none
+  ssl.verification_mode: certificate
+  ssl.certificate_authorities: ["/etc/filebeat/rootCA.pem"]
+
+Note: We need to copy the certificate rootCA.pem to the above mentioned location.
 
 ~# systemctl start filebeat
 
 ~# systemctl status filebeat
+
+
+<--------------------------------------- Client Config Ends --------------------------------------->
+
+
+To view logs
+------------
+
+Visit https://<SERVER-IP>:<PORT> from the browser.
+To view the Logs app, go to Observability > Logs.
+Click Stream Live to view a continuous flow of log messages in real time, or click Stop streaming to view historical logs from a specified time range.
+
+
+To add rules in elastic UI
+--------------------------
+We need to create encryption keys in kibana.
+
+~# cd /opt/installer/elk-docker
+~# docker-exec kibana bash
+bash-4.4$ bin/kibana-encryption-keys generate -i
+bash-4.4$ exit
+
+Copy the keys to a separate file outside the container (in your local machine). Also add the below lines to /opt/installer/scripts/elk-docker/kibana/config/kibana.yml
+
+~#  vim /opt/installer/scripts/elk-docker/kibana/config/kibana.yml
+xpack.encryptedSavedObjects.encryptionKey: <encryptedSavedObjects_encryptionKey>
+xpack.reporting.encryptionKey: <reporting_encryptionKey>
+xpack.security.encryptionKey: <security_encryptionKey>
+
+xpack.security.session.idleTimeout: "10m"
+xpack.security.session.lifespan: "1h"
+
+
+Restart kibana to make the changes work
+~# cd /opt/installer/elk-docker
+~# docker-compose restart kibana
